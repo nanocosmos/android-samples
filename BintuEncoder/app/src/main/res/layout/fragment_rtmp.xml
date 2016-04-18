@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:descendantFocusability="beforeDescendants"
+    android:focusableInTouchMode="true">
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/fab_rtmpInputDone"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_done_white_24dp"
+        android:clickable="true"
+        android:layout_gravity="bottom|end"
+        app:elevation="6dp"
+        app:pressedTranslationZ="12dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_margin="15dp"
+        android:alpha="0.3"/>
+
+    <android.support.design.widget.TextInputLayout
+        android:id="@+id/rtmpUrl_text_input_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="50dp"
+        android:layout_marginLeft="15dp"
+        android:layout_marginRight="15dp">
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/editText_rtmp_url"
+        android:hint="RTMP Url"
+        android:imeOptions="actionNext"
+        android:singleLine="true"/>
+    </android.support.design.widget.TextInputLayout>
+
+    <android.support.design.widget.TextInputLayout
+        android:id="@+id/streamName_text_input_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:layout_marginLeft="15dp"
+        android:layout_marginRight="15dp"
+        android:layout_below="@id/rtmpUrl_text_input_layout">
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/editText_stream_name"
+        android:hint="Stream ID"
+        android:imeOptions="actionDone"
+        android:singleLine="true"/>
+    </android.support.design.widget.TextInputLayout>
+    <!--<TextView-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:text="RTMP Url:"-->
+        <!--android:id="@+id/textView2"-->
+        <!--android:textSize="20sp"-->
+        <!--android:layout_alignLeft="@+id/editText_rtmp_url"-->
+        <!--android:layout_alignStart="@+id/editText_rtmp_url"-->
+        <!--android:layout_marginTop="50dp" />-->
+
+    <!--<TextView-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:text="Stream Name:"-->
+        <!--android:id="@+id/textView3"-->
+        <!--android:textSize="20sp"-->
+        <!--android:layout_below="@+id/editText_rtmp_url"-->
+        <!--android:layout_alignLeft="@+id/editText_rtmp_url"-->
+        <!--android:layout_alignStart="@+id/editText_rtmp_url"-->
+        <!--android:layout_marginTop="10dp" />-->
+
+</RelativeLayout>

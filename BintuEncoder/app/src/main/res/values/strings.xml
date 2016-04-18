@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">BintuEncoder</string>
+
+    <string name="action_settings">Settings</string>
+    <string name="error_caption">Sorry! An error occured!</string>
+    <string name="title_activity_initial">InitialActivity</string>
+    <string name="streamID">Stream ID:</string>
+    <string name="refreshStream">Create new stream</string>
+    <string name="startStream">Start Stream</string>
+    <string name="bintu_tab">Bintu</string>
+    <string name="bintu_title">Bintu Streaming Service</string>
+    <string name="rtmp_tab">Own Server</string>
+    <string name="rtmp_title">Own Streaming Server</string>
+    <string name="about_tab">About</string>
+    <string name="open_drawer">OpenDrawer</string>
+    <string name="close_drawer">CloseDrawer</string>
+    <string name="bandwidthCheck_title">Bandwidth Check</string>
+    <string name="stream_running_title">Stream is running!</string>
+    <string name="stream_running_alert_message">Do you really want to stop the stream now?</string>
+    <string name="cancel">Cancel</string>
+    <string name="bintu_load_stream_progress_text">Loading...</string>
+    <string name="bintuApiKeyHint">Bintu API Key</string>
+    <string name="bintuTagsHint">Tags separated by comma</string>
+    <string name="bintuTitleHint">Stream Title</string>
+
+</resources>

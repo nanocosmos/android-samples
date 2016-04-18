@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+
+                xmlns:app="http://schemas.android.com/apk/res-auto"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:descendantFocusability="beforeDescendants"
+                android:fitsSystemWindows="true"
+                android:focusableInTouchMode="true"
+                android:paddingLeft="@dimen/activity_horizontal_margin"
+                android:paddingRight="@dimen/activity_horizontal_margin"
+                android:paddingTop="@dimen/activity_horizontal_margin">
+
+
+    <android.support.design.widget.TextInputLayout
+        android:id="@+id/input_bintu_api_key_wrapper"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+
+        android:gravity="top|center_horizontal"
+        app:hintTextAppearance="@style/TextLabel">
+
+        <EditText
+            android:id="@+id/input_bintu_api_key"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/input_bintu_api_key_hint"/>
+
+    </android.support.design.widget.TextInputLayout>
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/bintu_start_stream_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="15dp"
+        android:alpha="0.3"
+        android:clickable="true"
+        android:src="@drawable/ic_done_white_24dp"
+        app:elevation="6dp"
+        app:pressedTranslationZ="12dp"/>
+
+    <RelativeLayout
+        android:id="@+id/bintu_load_stream_progress_layout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="invisible"
+        android:layout_centerInParent="true">
+
+        <ProgressBar
+            android:id="@+id/bintu_load_stream_progress"
+            style="?android:attr/progressBarStyleLarge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
+            android:layout_centerInParent="true"
+            android:layout_marginLeft="15dp"
+            android:layout_marginRight="15dp"
+            android:layout_marginTop="155dp"
+            android:indeterminate="false"/>
+
+        <TextView
+            android:id="@+id/bintu_load_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/bintu_load_stream_progress"
+            android:layout_centerHorizontal="true"
+            android:text="@string/bintu_load_stream_progress_text"/>
+    </RelativeLayout>
+
+
+</RelativeLayout>

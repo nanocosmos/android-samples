@@ -1,0 +1,19 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <item
+        android:id="@+id/action_320x240"
+        android:orderInCategory="100"
+        android:showAsAction="never"
+        android:title="@string/action_320x240"/>
+    <item
+        android:id="@+id/action_640x360"
+        android:orderInCategory="100"
+        android:showAsAction="never"
+        android:title="@string/action_640x360"/>
+    <item
+        android:id="@+id/action_640x480"
+        android:orderInCategory="100"
+        android:showAsAction="never"
+        android:title="@string/action_640x480"/>
+
+</menu>

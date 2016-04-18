@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">BintuPlayer</string>
+    <string name="start_text">Starting Test</string>
+    <string name="action_320x240">320x240</string>
+    <string name="action_640x360">640x360</string>
+    <string name="action_640x480">640x480</string>
+
+    <string name="title_activity_main2">Main2Activity</string>
+    <string name="input_stream_url_hint">Insert bintu playout url</string>
+    <string name="input_bintu_api_key_hint">Insert bintu API Key</string>
+    <string name="input_stream_url_load_btn">Load</string>
+    <string name="stream_start_btn_text">Start Stream</string>
+    <string name="stream_not_found">Wasn\'t able to get stream data</string>
+    <string name="about_appname">Bintu SDK Player Example</string>
+    <string name="about_bintu_version">Bintu Version</string>
+    <string name="about_app_version">App Version</string>
+    <string name="about_nanostream_version">nanoStream Version</string>
+    <string name="about_legal">Copyright 2016 nanocosmos GmbH</string>
+    <string name="bintu_tab_title">Bintu</string>
+    <string name="rtmp_tab_title">RTMP</string>
+    <string name="about_title">About</string>
+    <string name="input_rtmp_url_hint">Insert rtmp url</string>
+    <string name="input_rtmp_streamname_hint">and stream name</string>
+    <string name="no_network_error">No network connection available, please check your configuration.</string>
+    <string name="bintu_load_stream_progress_text">Loading....</string>
+    <string name="input_bintu_tags_hint">Tags separated by comma</string>
+
+
+</resources>
