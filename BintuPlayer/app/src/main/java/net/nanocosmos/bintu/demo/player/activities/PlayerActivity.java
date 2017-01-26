@@ -23,6 +23,8 @@ import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import net.nanocosmos.bintu.demo.player.Util.Configuration;
+import net.nanocosmos.bintu.demo.views.MetadataListview;
+import net.nanocosmos.nanoStream.streamer.Logging;
 import net.nanocosmos.nanoStream.streamer.NanostreamEvent;
 import net.nanocosmos.nanoStream.streamer.NanostreamPlayer;
 import net.nanocosmos.nanoStream.streamer.NanostreamPlayer.PlayerEventListener;
@@ -30,10 +32,14 @@ import net.nanocosmos.nanoStream.streamer.NanostreamPlayer.PlayerSettings;
 import net.nanocosmos.nanoStream.streamer.NanostreamPlayer.PlayerState;
 import net.nanocosmos.nanoStream.streamer.nanoStream;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 /**
  * Created by nanocosmos GmbH (c) 2015 - 2016
  */
-public class PlayerActivity extends Activity implements PlayerEventListener, TextureView.SurfaceTextureListener {
+public class PlayerActivity extends Activity implements PlayerEventListener, TextureView.SurfaceTextureListener, NanostreamPlayer.MetadataListener {
+    private static final boolean ENABLE_META_DATA_VIEW = false;
     private RetainedFragment dataFragment;
 
     // private RelativeLayout root;
@@ -59,6 +65,8 @@ public class PlayerActivity extends Activity implements PlayerEventListener, Tex
     private SurfacePlayerView surfaceView = null;
 
     private Surface surface = null;
+    private MetadataListview metadataView;
+    private int currentRotation = 0;
 
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
@@ -81,7 +89,6 @@ public class PlayerActivity extends Activity implements PlayerEventListener, Tex
         Intent intent = getIntent();
         strStreamUrl = intent.getStringExtra("url");
         strStreamname = intent.getStringExtra("streamname");
-
 
         root = new RelativeLayout(this);
 //        root.setOrientation(LinearLayout.VERTICAL);
@@ -111,6 +118,8 @@ public class PlayerActivity extends Activity implements PlayerEventListener, Tex
 
             mPlayer.setSettings(settings);
             mPlayer.setPlayerEventListener(this);
+            Logging.LogSettings logSettings = new Logging.LogSettings();
+            mPlayer.setLogSettings(logSettings);
 
             dataFragment.setData(mPlayer);
         } else {
@@ -128,6 +137,11 @@ public class PlayerActivity extends Activity implements PlayerEventListener, Tex
 
         root.addView(surfaceView);
 
+        if(ENABLE_META_DATA_VIEW) {
+            metadataView = new MetadataListview(this);
+            root.addView(metadataView);
+        }
+
         controller = new MediaController(this, false);
         controller.setAnchorView(root);
         controller.setMediaPlayer(mPlayer);
@@ -136,6 +150,13 @@ public class PlayerActivity extends Activity implements PlayerEventListener, Tex
 
 
         setContentView(root);
+
+        mPlayer.addMetaDataListener(this);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
     }
 
     @Override
@@ -146,18 +167,63 @@ public class PlayerActivity extends Activity implements PlayerEventListener, Tex
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        controller.show(5000);
+        if(controller != null) {
+            controller.show(5000);
+        }
         return super.onTouchEvent(event);
     }
 
     @Override
     public void onAttachedToWindow() {
-        controller.show(5000);
+        if(controller != null) {
+            controller.show(5000);
+        }
         super.onAttachedToWindow();
     }
 
     protected void onDestroy() {
+        releasePlayerInstance();
         super.onDestroy();
+    }
+
+    @Override
+    public void onMetadata(final JSONObject jsonObject) {
+        if(null != jsonObject) {
+            if (jsonObject.has("onMetaData") || jsonObject.has("onCuePoint") || jsonObject.has("onTextData") || jsonObject.has("onFI")) {
+                try {
+                    if(jsonObject.getJSONObject("onMetaData").has("nanoStreamStatus"))
+                    {
+                        JSONObject nanoStreamStatus = jsonObject.getJSONObject("onMetaData").getJSONObject("nanoStreamStatus");
+                        if(nanoStreamStatus.has("VideoRotation"))
+                        {
+                            int rotation = nanoStreamStatus.getInt("VideoRotation");
+                            if(currentRotation != rotation){
+                                currentRotation = rotation;
+                                runOnUiThread(new Runnable() {
+
+                                    @Override
+                                    public void run() {
+                                        surfaceView.setRotation(currentRotation);
+                                    }
+                                });
+                            }
+                        }
+                    }else {
+                        PlayerActivity.this.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (metadataView != null) {
+                                    metadataView.setNewMetadata(jsonObject);
+                                }
+
+                            }
+                        });
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     private class SurfacePlayerView extends TextureView {
@@ -221,6 +287,11 @@ public class PlayerActivity extends Activity implements PlayerEventListener, Tex
         public NanostreamPlayer getData() {
             return mPlayer;
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
     }
 
     @Override
@@ -323,11 +394,14 @@ public class PlayerActivity extends Activity implements PlayerEventListener, Tex
     @Override
     public void onBackPressed() {
         super.onBackPressed();
+        releasePlayerInstance();
+    }
+
+    public void releasePlayerInstance() {
         if (mPlayer != null){
             mPlayer.stop();
             mPlayer.close();
             mPlayer.release();
         }
-
     }
 }

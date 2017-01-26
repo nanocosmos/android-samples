@@ -8,9 +8,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import net.nanocosmos.bintu.bintusdk.stream.RtmpPlayout;
 import net.nanocosmos.bintu.bintusdk.stream.StreamInfo;
+import net.nanocosmos.bintu.bintusdk.stream.Type;
 import net.nanocosmos.bintu.demo.player.activities.PlayerActivity;
 import net.nanocosmos.nanoStream.demo.player.R;
 
@@ -81,14 +83,25 @@ public class StreamListAdapter extends ArrayAdapter<StreamInfo> {
         public void onClick(View v) {
 
             if (info != null && info.getRtmpPlayouts() != null && info.getRtmpPlayouts().size() > 0) {
-                RtmpPlayout rtmpPlayout = info.getRtmpPlayouts().get(0);
-                String rtmpURL = rtmpPlayout.getUrl();
-                String streamName = rtmpPlayout.getStreamName();
+                RtmpPlayout rtmpPlayout = null;
 
-                Intent intent = new Intent(ctx, PlayerActivity.class);
-                intent.putExtra("url", rtmpPlayout.getUrl());
-                intent.putExtra("streamname", rtmpPlayout.getStreamName());
-                ctx.startActivity(intent);
+                for (RtmpPlayout p : info.getRtmpPlayouts()) {
+                    if(p.getType() == Type.LIVE) {
+                        rtmpPlayout = p;
+                    }
+                }
+
+                if(rtmpPlayout != null) {
+                    String rtmpURL = rtmpPlayout.getUrl();
+                    String streamName = rtmpPlayout.getStreamName();
+
+                    Intent intent = new Intent(ctx, PlayerActivity.class);
+                    intent.putExtra("url", rtmpPlayout.getUrl());
+                    intent.putExtra("streamname", rtmpPlayout.getStreamName());
+                    ctx.startActivity(intent);
+                }else{
+                    Toast.makeText(ctx, "Error no live stream URL found for this entry.", Toast.LENGTH_SHORT).show();
+                }
             }
        }
     }
