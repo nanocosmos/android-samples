@@ -3,13 +3,11 @@
     android:layout_height="match_parent" tools:context=".activities.StreamActivity"
     android:background="@android:color/black">
 
-    <net.nanocosmos.bintu.demo.encoder.ui.StreamPreview
-        android:id="@+id/surface"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
-        android:layout_gravity="center"
-        android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true"/>
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/surfaceFrame">
+    </FrameLayout>
 
     <LinearLayout
         android:id="@+id/qualityView"
@@ -150,7 +148,7 @@
         android:background="@android:color/transparent"
         android:src="@android:drawable/ic_menu_share"
         android:onClick="shareUrl"
-        android:id="@+id/imageButton2"
+        android:id="@+id/shareBtn"
         android:layout_alignTop="@+id/qualityView"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"

@@ -17,7 +17,7 @@ public class NetworkStateReceiver extends BroadcastReceiver {
     protected List<NetworkStateReceiverListener> listeners;
     protected Boolean connected;
 
-    private NetworkStateReceiver() {
+    public NetworkStateReceiver() {
         listeners = new ArrayList<NetworkStateReceiverListener>();
         connected = null;
         instance = this;

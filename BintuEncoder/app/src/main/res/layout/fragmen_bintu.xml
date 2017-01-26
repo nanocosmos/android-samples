@@ -108,4 +108,17 @@
             android:layout_centerHorizontal="true"
             android:text="@string/bintu_load_stream_progress_text"/>
     </RelativeLayout>
+
+    <Switch
+        android:text="Log Enabled"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/switch_log"
+        android:layout_weight="1"
+        android:checked="true"
+        android:layout_below="@+id/switch_audio"
+        android:layout_alignLeft="@+id/switch_audio"
+        android:layout_alignStart="@+id/switch_audio"
+        android:layout_alignRight="@+id/switch_audio"
+        android:layout_alignEnd="@+id/switch_audio" />
 </RelativeLayout>
