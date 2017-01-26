@@ -246,8 +246,8 @@ public class MainActivity extends Activity implements NanostreamEventListener, F
                 }
 
                 @Override
-                public void onError(int i, int i1, String s) {
-                    Toast.makeText(getApplicationContext(), s, Toast.LENGTH_LONG).show();
+                public void onError(Throwable throwable) {
+                    Toast.makeText(getApplicationContext(), throwable.getMessage(), Toast.LENGTH_LONG).show();
                     initStreamLib();
                 }
             });

@@ -10,12 +10,12 @@ import android.text.Editable;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -23,12 +23,11 @@ import android.widget.Toast;
 
 import net.nanocosmos.bintu.bintusdk.BintuSDK;
 import net.nanocosmos.bintu.bintusdk.exceptions.BintuError;
-import net.nanocosmos.bintu.bintusdk.handler.StreamInfoListResponseHandler;
 import net.nanocosmos.bintu.bintusdk.handler.StreamInfoResponseHandler;
-import net.nanocosmos.bintu.bintusdk.stream.State;
+import net.nanocosmos.bintu.bintusdk.stream.Playout;
 import net.nanocosmos.bintu.bintusdk.stream.StreamInfo;
+import net.nanocosmos.bintu.bintusdk.stream.Type;
 import net.nanocosmos.bintu.bintusdk.util.StreamBuilder;
-import net.nanocosmos.bintu.bintusdk.util.StreamFilter;
 import net.nanocosmos.bintu.demo.encoder.R;
 import net.nanocosmos.bintu.demo.encoder.activities.BandwidthCheckActivity;
 import net.nanocosmos.bintu.demo.encoder.util.Configuration;
@@ -37,7 +36,6 @@ import net.nanocosmos.bintu.demo.encoder.util.Constants;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.UnknownHostException;
-import java.util.List;
 
 /**
  * Created by nanocosmos GmbH (c) 2015 - 2016
@@ -49,6 +47,12 @@ public class BintuApiKeyInput extends Fragment {
     private EditText etApiKey = null;
     private EditText etTags = null;
     private EditText etTitle = null;
+    private Switch videoSwitch = null;
+    private Switch audioSwitch = null;
+    private Switch logSwitch = null;
+    private boolean videoEnabled = true;
+    private boolean audioEnabled = true;
+    private boolean logEnabled = true;
     private FloatingActionButton fabBintuDone = null;
     private RelativeLayout progressLayout = null;
     private SharedPreferences prefs;
@@ -64,6 +68,31 @@ public class BintuApiKeyInput extends Fragment {
         etApiKey.setInputType(InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         etTags = (EditText) rootView.findViewById(R.id.editTextBintuTags);
         etTitle = (EditText) rootView.findViewById(R.id.editTextBintuTitle);
+
+        videoSwitch = (Switch) rootView.findViewById(R.id.switch_video);
+        videoSwitch.setActivated(true);
+        videoSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                videoEnabled = isChecked;
+            }
+        });
+        audioSwitch = (Switch) rootView.findViewById(R.id.switch_audio);
+        audioSwitch.setActivated(true);
+        audioSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                audioEnabled = isChecked;
+            }
+        });
+        logSwitch = (Switch) rootView.findViewById(R.id.switch_log);
+        logSwitch.setActivated(true);
+        logSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                logEnabled = isChecked;
+            }
+        });
 
         fabBintuDone = (FloatingActionButton) rootView.findViewById(R.id.fab_bintuDone);
         fabBintuDone.setOnClickListener(new customOnClickListener());
@@ -142,7 +171,15 @@ public class BintuApiKeyInput extends Fragment {
 
                         String serverUrl = streamInfo.getIngest().getUrl();
                         String streamName = streamInfo.getIngest().getStreamName();
-                        String webPlayout = streamInfo.getWebPlayouts().get(0).getPlayoutUrl().toString();
+                        String webPlayout = "";
+
+                        for (Playout p : streamInfo.getWebPlayouts()) {
+                            if(p.getType() == Type.LIVE){
+                                webPlayout = p.toString();
+                                break;
+                            }
+                        }
+
 
                         enableProgress(false);
 
@@ -151,6 +188,9 @@ public class BintuApiKeyInput extends Fragment {
                         bwCheckIntent.putExtra(Constants.KEY_SERVER_URL, serverUrl);
                         bwCheckIntent.putExtra(Constants.KEY_STREAM_NAME, streamName);
                         bwCheckIntent.putExtra(Constants.KEY_WEB_PLAYOUT, webPlayout);
+                        bwCheckIntent.putExtra(Constants.KEY_VIDEO_ENABLED, videoEnabled);
+                        bwCheckIntent.putExtra(Constants.KEY_AUDIO_ENABLED, audioEnabled);
+                        bwCheckIntent.putExtra(Constants.KEY_LOG_ENABLED, logEnabled);
 
                         startActivity(bwCheckIntent);
 

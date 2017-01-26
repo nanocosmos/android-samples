@@ -8,8 +8,8 @@ android {
         applicationId "net.nanocosmos.nanoStream.demo.player"
         minSdkVersion 16
         targetSdkVersion 17
-        versionCode 4
-        versionName "0.1.2"
+        versionCode 30
+        versionName "0.2.4"
     }
     buildTypes {
         release {

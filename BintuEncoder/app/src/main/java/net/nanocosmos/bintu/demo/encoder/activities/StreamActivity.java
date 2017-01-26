@@ -10,10 +10,13 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.graphics.Rect;
+import android.graphics.SurfaceTexture;
 import android.hardware.SensorManager;
+import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -21,11 +24,17 @@ import android.view.GestureDetector.OnGestureListener;
 import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 import android.view.ScaleGestureDetector;
+import android.view.Surface;
+import android.view.SurfaceView;
+import android.view.TextureView;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -38,9 +47,9 @@ import net.nanocosmos.bintu.demo.encoder.util.Constants;
 import net.nanocosmos.nanoStream.streamer.AdaptiveBitrateControlSettings;
 import net.nanocosmos.nanoStream.streamer.AspectRatio;
 import net.nanocosmos.nanoStream.streamer.AudioSettings;
-import net.nanocosmos.nanoStream.streamer.EncoderState;
 import net.nanocosmos.nanoStream.streamer.FocusCallback;
 import net.nanocosmos.nanoStream.streamer.Logging;
+import net.nanocosmos.nanoStream.streamer.NanostreamAudioSource;
 import net.nanocosmos.nanoStream.streamer.NanostreamEvent;
 import net.nanocosmos.nanoStream.streamer.NanostreamEventListener;
 import net.nanocosmos.nanoStream.streamer.NanostreamException;
@@ -51,18 +60,27 @@ import net.nanocosmos.nanoStream.streamer.VideoSettings;
 import net.nanocosmos.nanoStream.streamer.nanoResults;
 import net.nanocosmos.nanoStream.streamer.nanoStream;
 import net.nanocosmos.nanoStream.streamer.nanoStreamSettings;
+import net.nanocosmos.nanoStream.util.MultiSurfaceTextureListener;
+import net.nanocosmos.nanoStream.util.MultiSurfaceTextureListenerImpl;
 
 import java.io.File;
+import java.text.DateFormat;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.List;
 
 /**
  * Created by nanocosmos GmbH (c) 2015 - 2016
  */
-public class StreamActivity extends Activity implements NanostreamEventListener, FocusCallback{
-    private static  final String TAG = "StreamActivity";
+public class StreamActivity extends Activity implements NanostreamEventListener, FocusCallback, NanostreamAudioSource.AudioLevelCallback, TextureView.SurfaceTextureListener {
+    private static final String TAG = "StreamActivity";
+    private static final boolean ENABLE_AUDIO_LEVEL_CALLBACK = true;
+    private static final boolean ENABLE_SEND_METADATA = true;
 
     private CheckAppPermissions appPermissions = null;
+
+    private RelativeLayout root;
 
     // Stream config
     // TODO: REPLACE THE RTMP URL AND STREAM NAME
@@ -72,7 +90,7 @@ public class StreamActivity extends Activity implements NanostreamEventListener,
     private String  authUser     = "";
     private String  authPassword = "";
     private boolean sendRtmp     = true;
-    private boolean recordMp4    = true;
+    private boolean recordMp4    = false;
     private String  mp4FilePath      = "";
     private boolean streamVideo  = true;
     private boolean streamAudio  = true;
@@ -81,11 +99,13 @@ public class StreamActivity extends Activity implements NanostreamEventListener,
     private AdaptiveBitrateControlSettings.AdaptiveBitrateControlMode abcMode = AdaptiveBitrateControlSettings.AdaptiveBitrateControlMode.QUALITY_DEGRADE_AND_FRAME_DROP;
     AdaptiveBitrateControlSettings abcSettings = null;
     private Logging.LogSettings logSettings = null;
+    private boolean logEnabled = true;
 
     // Video config
     public static Resolution            videoResolution         = new Resolution(640, 480);
+    public static Resolution            usedVideoResolution;
     private int                         videoBitrate            = 500000;
-    private int                         videoFramerate          = 15;
+    private int                         videoFramerate          = 30;
     private int                         videoKeyFrameInterval   = 5;
     private nanoStream.VideoSourceType  videoSourceType         = nanoStream.VideoSourceType.INTERNAL_BACK;
     private boolean                     useAutoFocus            = true;  // false
@@ -115,6 +135,8 @@ public class StreamActivity extends Activity implements NanostreamEventListener,
     private Rotation prevRotation = Rotation.ROTATION_0;
     private Rotation streamRotation = Rotation.ROTATION_0;
     private CustomOrientationEventListener orientation = null;
+    private Rotation streamOrientation = Rotation.ROTATION_0;
+    private Handler sendStreamOrientationHandler;
 
     // Zoom
     private ScaleGestureDetector scaleGestureDetector;
@@ -136,6 +158,9 @@ public class StreamActivity extends Activity implements NanostreamEventListener,
     private TextView framerate = null;
 
     private boolean backCam = true;
+
+    private Handler mHandler;
+    private boolean surfaceAvailable = false;
 
     @Override
     public void onBackPressed() {
@@ -179,8 +204,16 @@ public class StreamActivity extends Activity implements NanostreamEventListener,
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_streamer);
-        streamToggle = (ImageButton) findViewById(R.id.btnToogleStream);
-        surface = (StreamPreview) findViewById(R.id.surface);
+
+        ViewGroup.LayoutParams param = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        surface = new StreamPreview(this);
+        surface.setLayoutParams(param);
+        MultiSurfaceTextureListenerImpl multiSurfaceTextureListener = new MultiSurfaceTextureListenerImpl();
+        multiSurfaceTextureListener.addListener(this);
+        surface.setSurfaceTextureListener(multiSurfaceTextureListener);
+
+        FrameLayout frameLayout = (FrameLayout) findViewById(R.id.surfaceFrame);
+        frameLayout.addView(surface);
 
         isDefaultOrientationLandscape = (RotationHelper.getDeviceDefaultOrientation(this) == android.content.res.Configuration.ORIENTATION_LANDSCAPE);
 
@@ -204,6 +237,9 @@ public class StreamActivity extends Activity implements NanostreamEventListener,
         streamName = intent.getStringExtra(Constants.KEY_STREAM_NAME);
         webPlayoutUrl = intent.getStringExtra(Constants.KEY_WEB_PLAYOUT);
         videoBitrate = intent.getIntExtra(Constants.KEY_BITRATE, videoBitrate);
+        streamVideo = intent.getBooleanExtra(Constants.KEY_VIDEO_ENABLED, true);
+        streamAudio = intent.getBooleanExtra(Constants.KEY_AUDIO_ENABLED, true);
+        logEnabled = intent.getBooleanExtra(Constants.KEY_LOG_ENABLED, true);
 
         if (null == webPlayoutUrl || webPlayoutUrl.isEmpty()) {
             webPlayoutUrl = "http://www.nanocosmos.net/nanostream/live.html?id=" + serverUrl + "/" + streamName;
@@ -215,30 +251,14 @@ public class StreamActivity extends Activity implements NanostreamEventListener,
         bitrate = (TextView) findViewById(R.id.bitrateText);
         framerate = (TextView) findViewById(R.id.framerateText);
 
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            initStreamLib();
-        } else {
-            appPermissions = new CheckAppPermissions(this);
-            boolean needPermission = false;
-            if (streamVideo) {
-                needPermission |= !appPermissions.checkCameraPermissions();
-            }
-            if (streamAudio) {
-                needPermission |= !appPermissions.checkRecordAudioPermission();
-            }
-            if (recordMp4) {
-                needPermission |= !appPermissions.checkWriteExternalStoragePermission();
-            }
-
-            if (needPermission) {
-                appPermissions.requestMissingPermissions();
-            } else {
-                initStreamLib();
-            }
-        }
+        streamToggle = (ImageButton) findViewById(R.id.btnToogleStream);
 
         orientation = new CustomOrientationEventListener(this, SensorManager.SENSOR_DELAY_UI);
         orientation.enable();
+
+        mHandler = new Handler();
+        sendStreamOrientationHandler = new Handler();
+
     }
 
     @Override
@@ -286,6 +306,60 @@ public class StreamActivity extends Activity implements NanostreamEventListener,
     @Override
     public void onFailure() {
         Logging.log(Logging.LogLevel.DEBUG, TAG, "Focus: failed");
+    }
+
+    @Override
+    public void onAudioLevel(double v) {
+        Log.d(TAG, "Audio Level [dB] : " + v);
+    }
+
+    @Override
+    public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+        Surface foo = new Surface(surface);
+        SurfaceView foo1 =  new SurfaceView(this);
+        foo = foo1.getHolder().getSurface();
+        GLSurfaceView foo2 = new GLSurfaceView(this);
+        foo = foo2.getHolder().getSurface();
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            initStreamLib();
+        } else {
+            appPermissions = new CheckAppPermissions(this);
+            boolean needPermission = false;
+            if (streamVideo) {
+                needPermission |= !appPermissions.checkCameraPermissions();
+            }
+            if (streamAudio) {
+                needPermission |= !appPermissions.checkRecordAudioPermission();
+            }
+            if (recordMp4) {
+                needPermission |= !appPermissions.checkWriteExternalStoragePermission();
+            }
+
+            if (needPermission) {
+                appPermissions.requestMissingPermissions();
+            } else {
+                initStreamLib();
+            }
+        }
+    }
+
+    @Override
+    public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+
+    }
+
+    @Override
+    public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+        if(streamLib != null) {
+            streamLib.release();
+        }
+        return true;
+    }
+
+    @Override
+    public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+
     }
 
     private class NotificationRunable implements Runnable {
@@ -409,13 +483,12 @@ public class StreamActivity extends Activity implements NanostreamEventListener,
         nanoStreamSettings nss = new nanoStreamSettings();
         nss.setVideoSettings(vs);
         nss.setHaveVideo(streamVideo);
-        nss.setPreviewHolder(surface.getHolder());
+        nss.setPreviewSurface(surface);
         nss.setAudioSettings(as);
         nss.setHaveAudio(streamAudio);
         nss.setAbcSettings(abcSettings);
         nss.setLogSettings(logSettings);
         nss.setLicense(Configuration.NANOSTREAM_LICENSE);
-        nss.setLogSettings(logSettings);
         nss.setStreamUrl(serverUrl);
         nss.setStreamName(streamName);
         nss.setAuthUser(authUser);
@@ -433,6 +506,7 @@ public class StreamActivity extends Activity implements NanostreamEventListener,
             try {
                 nanoStreamSettings nss = configureNanostreamSettings();
                 streamLib = new nanoStream(nss);
+                usedVideoResolution = new Resolution(streamLib.getVideoSourceFormat().getWidth(), streamLib.getVideoSourceFormat().getHeight());
             } catch (NanostreamException en) {
                 Toast.makeText(getApplicationContext(), en.toString(), Toast.LENGTH_LONG).show();
             }
@@ -464,6 +538,10 @@ public class StreamActivity extends Activity implements NanostreamEventListener,
                 if (streamVideo) {
                     mZoomRatios = streamLib.getZoomRatios();
                     streamLib.addFocusCalback(this);
+                }
+
+                if(ENABLE_AUDIO_LEVEL_CALLBACK) {
+                    streamLib.addAudioLevelCallback(this);
                 }
             }
             // the scaleGestureDetector is needed for pinch to zoom.
@@ -499,6 +577,11 @@ public class StreamActivity extends Activity implements NanostreamEventListener,
 
             try {
                 streamLib.start();
+                if(ENABLE_SEND_METADATA) {
+                    mHandler.postDelayed(new SendMetaDataRunnable(), 500);
+
+                }
+                sendStreamOrientationHandler.postDelayed(new SendOrientationMetadataRunnable(), 500);
             } catch (NanostreamException en) {
                 Toast.makeText(getApplicationContext(), en.toString(), Toast.LENGTH_LONG).show();
                 return;
@@ -601,48 +684,52 @@ public class StreamActivity extends Activity implements NanostreamEventListener,
         @Override
         public void onOrientationChanged(int orientation) {
             if (null != streamLib) {
-                if (!streamLib.hasState(nanoStream.EncoderState.RUNNING)) {
-                    if (isDefaultOrientationLandscape) {
-                        orientation -= 90;
+//                if (!streamLib.hasState(nanoStream.EncoderState.RUNNING)) {
+                if (isDefaultOrientationLandscape) {
+                    orientation -= 90;
 
-                        if (orientation < 0) {
-                            orientation += 360;
-                        }
-                    }
-                    int screenOrientation = -1;
-
-                    if (orientation > 70 && orientation < 110) {
-                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE);
-                        screenOrientation = ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE;
-                    } else if (orientation > 160 && orientation < 200) {
-                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT);
-                        screenOrientation = ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT;
-                    } else if (orientation > 250 && orientation < 290) {
-                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-                        screenOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
-                    } else if ((orientation > 340 && orientation <= 360) || (orientation >= 0 && orientation < 20)) {
-                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-                        screenOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
-                    }
-
-                    if (screenOrientation != lastScreenOrientation) {
-                        Rotation rotation = RotationHelper.getRotation(screenOrientation, isDefaultOrientationLandscape);
-                        if (null != rotation) {
-
-                            Log.d(TAG, "orientation: " + orientation + " rotation: " + rotation.getDegrees());
-
-                            try {
-                                Log.d(TAG, "Rotation: " + rotation.toString());
-                                streamLib.setPreviewRotation(rotation);
-                                streamLib.setStreamRotation(rotation);
-                                streamLib.setAspectRatio(videoAspectRatio);
-                            } catch (IllegalStateException e) {
-                                Logging.log(Logging.LogLevel.ERROR, TAG, "Camera rotate failed", e);
-                            }
-                        }
-                        lastScreenOrientation = screenOrientation;
+                    if (orientation < 0) {
+                        orientation += 360;
                     }
                 }
+                int screenOrientation = -1;
+
+                if (orientation > 70 && orientation < 110) {
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE);
+                    screenOrientation = ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE;
+                } else if (orientation > 160 && orientation < 200) {
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT);
+                    screenOrientation = ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT;
+                } else if (orientation > 250 && orientation < 290) {
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                    screenOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+                } else if ((orientation > 340 && orientation <= 360) || (orientation >= 0 && orientation < 20)) {
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                    screenOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+                }
+
+                if (screenOrientation != lastScreenOrientation) {
+                    Rotation rotation = RotationHelper.getRotation(screenOrientation, isDefaultOrientationLandscape);
+                    if (null != rotation) {
+                        streamOrientation = rotation;
+                        Log.d(TAG, "orientation: " + orientation + " rotation: " + rotation.getDegrees());
+
+                        try {
+                            Log.d(TAG, "Rotation: " + rotation.toString());
+                            streamLib.setPreviewRotation(rotation);
+                            if(!streamLib.hasState(nanoStream.EncoderState.RUNNING))
+                            {
+                                streamRotation = rotation;
+                                streamLib.setStreamRotation(rotation);
+                            }
+                            streamLib.setAspectRatio(videoAspectRatio);
+                        } catch (IllegalStateException e) {
+                            Logging.log(Logging.LogLevel.ERROR, TAG, "Camera rotate failed", e);
+                        }
+                    }
+                    lastScreenOrientation = screenOrientation;
+                }
+//                }
             }
         }
     }
@@ -753,5 +840,151 @@ public class StreamActivity extends Activity implements NanostreamEventListener,
 
         }
 
+    }
+
+    public class SendOrientationMetadataRunnable implements Runnable {
+        private String TAG = "SendOrientationMetadata";
+        @Override
+        public void run() {
+            if(streamLib != null && streamLib.hasState(nanoStream.EncoderState.RUNNING)) {
+
+                int rotation = (streamOrientation.getDegrees() - streamRotation.getDegrees() + 360) % 360;
+                Log.d(TAG, "rotation : " + rotation + " stream rotatin : "+streamRotation.getDegrees() + " stream orientation : "+streamOrientation.getDegrees());
+
+                if(!backCam) {
+                    if((rotation == Rotation.ROTATION_90.getDegrees() || rotation == Rotation.ROTATION_270.getDegrees())){
+                        rotation = (rotation + 180) % 360;
+                    }
+                }
+
+                String json = "{\"nanoStreamStatus\":{\"VideoRotation\" : " + rotation + "}}";
+
+                Log.d(TAG, "SendMetaData onMetaData : " + json );
+                streamLib.sendMetaData("onMetaData", json, "", true);
+
+                sendStreamOrientationHandler.postDelayed(this, 2000);
+            }
+        }
+    }
+
+    /**
+     * Test Class to send Metadata over RTMP.
+     *
+     * This Class sends following RTMP Metadata Commends:
+     *  - onMetaData
+     *  - onCuePoint
+     *  - onFI
+     *
+     *  The run method sends every three seconds on of the above commends over rtmp.
+     */
+    public class SendMetaDataRunnable implements Runnable {
+
+        int sendMetaDataCount = 0;
+
+        @Override
+        public void run() {
+            if(streamLib.hasState(nanoStream.EncoderState.RUNNING)){
+
+
+                switch (sendMetaDataCount) {
+                    case 0:
+                        sendOnMetaData();
+                        break;
+                    case 1:
+                        sendOnFI();
+                        break;
+                    case 2:
+                        sendOnCuePoint();
+                        break;
+                    case 3:
+                        sendOnTextData();
+                        break;
+                }
+
+                sendMetaDataCount++;
+
+                sendMetaDataCount %= 4;
+
+                mHandler.postDelayed(this, 3000);
+            }
+        }
+
+        private void sendOnMetaData(){
+            /**
+             * JSON String:
+             *
+             * {
+             *   "int" : -42,
+             *   "double" : 3.14159265359,
+             *   "uint" : 42,
+             *   "exponent" : 10e100,
+             *   "String" : "Answer to the Ultimate Question of Life, the Universe, and Everything",
+             *   "Boolean" : true
+             * }
+             */
+            String json = "{\"int\":-42,\"double\":3.14159265359,\"uint\":42,\"exponent\":10e100,\"String\":\"Answer to the Ultimate Question of Life, the Universe, and Everything\",\"Boolean\":true}";
+
+            Logging.log(Logging.LogLevel.DEBUG, TAG, "SendMetaData onMetaData : " + json );
+            streamLib.sendMetaData("onMetaData", json, "", true);
+        }
+
+        private void sendOnCuePoint(){
+            /**
+             * JSON String:
+             *
+             * {
+             *   "key1" : "value1",
+             *   "key2" : "value2"
+             * }
+             */
+            String json = "{\"key1\":\"value1\",\"key2\":\"value2\"}";
+            Logging.log(Logging.LogLevel.DEBUG, TAG, "SendMetaData onCuePoint : " + json );
+            streamLib.sendMetaData("onCuePoint", json, "", true);
+        }
+
+        private void sendOnFI() {
+            /**
+             * JSON String:
+             *
+             * {
+             *   "sd" : "$DATE",
+             *   "st" : "$TIME"
+             * }
+             */
+
+            DateFormat df = new SimpleDateFormat("dd-MM-yyyy");
+            String date = df.format(Calendar.getInstance().getTime());
+            df = new SimpleDateFormat("HH:mm:ss.SSS");
+            String time = df.format(Calendar.getInstance().getTime());
+
+            String json = "{\"sd\":\""+date+"\",\"st\":\""+time+"\"}";
+            Logging.log(Logging.LogLevel.DEBUG, TAG, "SendMetaData onFI : " + json );
+            streamLib.sendMetaData("onFI", json, "", true);
+        }
+
+        private void sendOnTextData() {
+            /**
+             * JSON String:
+             * {
+             *    "textData" : "Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+             *    Pellentesque iaculis dapibus ornare. In molestie nulla a enim tincidunt,
+             *    ac eleifend diam tempus. Nunc metus neque, hendrerit tempor dapibus quis,
+             *    facilisis ut metus. Integer ut massa fringilla nisi posuere gravida.
+             *    Sed aliquam magna non ullamcorper sagittis. Aenean in ex porttitor diam
+             *    porttitor mattis. Integer ut erat in orci porttitor rhoncus id eget elit.
+             *    Integer eu orci mollis urna volutpat mattis. Quisque a mi tincidunt,
+             *    consectetur ante non, dapibus velit. Aliquam ultricies lacinia dapibus.
+             *    Fusce a tellus eleifend, eleifend libero rhoncus, vulputate mauris.
+             *    Proin sollicitudin nisi lacus, vitae dictum diam tincidunt luctus.
+             *    Donec varius arcu at augue rhoncus tincidunt. Etiam posuere pretium orci at
+             *    congue. Cras tincidunt efficitur enim vel finibus."
+             * }
+             */
+
+            String json = "{\"textData\":\"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque iaculis dapibus ornare. In molestie nulla a enim tincidunt, ac eleifend diam tempus. \"}";
+
+            Logging.log(Logging.LogLevel.DEBUG, TAG, "SendMetaData onTextData : " + json );
+            streamLib.sendMetaData("onTextData", json, "", true);
+        }
     }
 }

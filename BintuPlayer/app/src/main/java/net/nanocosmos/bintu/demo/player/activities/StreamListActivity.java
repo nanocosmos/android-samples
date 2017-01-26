@@ -115,8 +115,9 @@ public class StreamListActivity extends AppCompatActivity {
             filter.setState(State.LIVE);
         }
 
-        bintu.getStreams(filter, handler);
-
+        if(bintu != null) {
+            bintu.getStreams(filter, handler);
+        }
         swipeRefreshLayout.post(new Runnable() {
             @Override
             public void run() {

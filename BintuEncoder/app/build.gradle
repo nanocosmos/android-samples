@@ -8,8 +8,8 @@ android {
         applicationId "net.nanocosmos.bintu.demo.streamer"
         minSdkVersion 16
         targetSdkVersion 23
-        versionCode 16
-        versionName "0.2.0"
+        versionCode 34
+        versionName "0.2.4"
     }
     buildTypes {
         release {

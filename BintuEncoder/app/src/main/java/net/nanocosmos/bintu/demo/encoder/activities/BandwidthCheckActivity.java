@@ -46,6 +46,9 @@ public class BandwidthCheckActivity extends AppCompatActivity implements Bandwid
     private String serverUrl = "";
     private String streamName = "";
     private String webPlayoutUrl = "";
+    private boolean videoEnabled = true;
+    private boolean audioEnabled = true;
+    private boolean logEnabled = true;
 
     private int avgBitrate = 0;
     int videoBitrate = 500000;
@@ -61,6 +64,9 @@ public class BandwidthCheckActivity extends AppCompatActivity implements Bandwid
         serverUrl = intent.getStringExtra(Constants.KEY_SERVER_URL);
         streamName = intent.getStringExtra(Constants.KEY_STREAM_NAME);
         webPlayoutUrl = intent.getStringExtra(Constants.KEY_WEB_PLAYOUT);
+        videoEnabled = intent.getBooleanExtra(Constants.KEY_VIDEO_ENABLED, true);
+        audioEnabled = intent.getBooleanExtra(Constants.KEY_AUDIO_ENABLED, true);
+        logEnabled = intent.getBooleanExtra(Constants.KEY_LOG_ENABLED, true);
 
         fabSkipBwCheck = (FloatingActionButton) findViewById(R.id.fab_skipBwCheck);
         fabSkipBwCheck.setOnClickListener(new SkipClickListener());
@@ -98,6 +104,7 @@ public class BandwidthCheckActivity extends AppCompatActivity implements Bandwid
             BandwidthCheckSettings settings = new BandwidthCheckSettings();
             settings.setRtmpUrl(serverUrl);
             settings.setStreamId(streamName);
+            settings.setLogEnabled(logEnabled?1:0);
             bwCheck = new BandwidthCheck();
             bwCheck.runBandwidthCheck(settings, this);
         }
@@ -189,6 +196,9 @@ public class BandwidthCheckActivity extends AppCompatActivity implements Bandwid
         streamIntent.putExtra(Constants.KEY_STREAM_NAME, streamName);
         streamIntent.putExtra(Constants.KEY_WEB_PLAYOUT, webPlayoutUrl);
         streamIntent.putExtra(Constants.KEY_BITRATE, videoBitrate);
+        streamIntent.putExtra(Constants.KEY_VIDEO_ENABLED, videoEnabled);
+        streamIntent.putExtra(Constants.KEY_AUDIO_ENABLED, audioEnabled);
+        streamIntent.putExtra(Constants.KEY_LOG_ENABLED, logEnabled);
 
         startActivityForResult(streamIntent, Constants.REQUEST_CODE);
     }
