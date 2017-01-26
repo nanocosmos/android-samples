@@ -1,17 +1,18 @@
-nanoStream Live Video Encoder Software
-(c) 2010-2016, nanocosmos gmbh
+(c) 2013-2016 nanocosmos gmbh
 http://www.nanocosmos.de
-sales@nanocosmos.de
 
-The following samples can be found in the separate folders.
-- BintuEncoder - This sample shows the basic usage of the nanoStream Android SDK with bintu.live connection for encoder apps.
-- BintuPlayer - This sample shows the basic usage of the nanoStream Android SDK with bintu.live connection for player apps.
-- SimpleEncoder - This sample shows the basic usage of the nanoStream Android SDK with bintu.live connection for streaming apps.
+nanoStream Samples for Android
 
-There is a separate README.md file for each sample project inside the project folder.
+License restrictions apply - please see license.txt
 
+Overview:
 
-Contact:
+BintuEncoder
+Encoder app including bandwidth checker, adaptive bitrate encoding, portrait and landscape streaming,
+and bintu.live end-to-end streaming. Now including stream tagging and titling.
 
-sales@nanocosmos.de
-http://www.nanocosmos.de/contact
+BintuPlayer
+Live playback with nanoStream Android SDK with bintu.live or from custom URLs, now including stream tagging and titling.
+
+SimpleEncoder
+This sample shows the basic usage of the nanoStream Android SDK with bintu.live connection for encoder apps.
