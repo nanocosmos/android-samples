@@ -11,6 +11,6 @@ public class Configuration {
     public static final String BINTU_API_KEY = "";
 
     // TODO: REPLACE THE RTMP URL AND STREAM NAME NOT NEEDED IF YOU USE BINTU
-    private String serverUrl = "rtmp://example.org/live";
-    private String streamName = "stream";
+    private String SERVER_URL = "rtmp://example.org/live";
+    private String STREAM_NAME = "stream";
 }
